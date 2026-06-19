@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ventilator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(160deg, #0d1b2a, #1b2838, #0d1b2a);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* ── WIND PARTICLES ── */
+    .wind-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wind-line {
+      position: absolute;
+      height: 2px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, transparent, rgba(100,200,255,0.3), transparent);
+      animation: windMove linear infinite;
+      opacity: 0;
+    }
+    @keyframes windMove {
+      0%   { transform: translateX(-300px); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateX(120vw); opacity: 0; }
+    }
+
+    /* ── MAIN WRAPPER ── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #7ecfff;
+      opacity: .7;
+    }
+
+    /* ── FAN SCENE ── */
+    .fan-scene {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* glow ring behind fan */
+    .glow-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(100,200,255,0.12) 0%, transparent 70%);
+      transition: opacity .6s;
+      opacity: 0;
+    }
+    .fan-on .glow-ring { opacity: 1; }
+
+    /* cage ring */
+    .cage {
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      border: 4px solid #2a4a6a;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 2px #1a2a3a, inset 0 0 30px rgba(0,0,0,0.5);
+      background: rgba(10,20,35,0.6);
+      transition: border-color .4s, box-shadow .4s;
+    }
+    .fan-on .cage {
+      border-color: #3a7aaa;
+      box-shadow: 0 0 0 2px #1a2a3a, 0 0 40px rgba(100,200,255,0.25), inset 0 0 30px rgba(0,0,0,0.3);
+    }
+
+    /* cage grid lines */
+    .cage::before, .cage::after {
+      content: '';
+      position: absolute;
+      background: #1e3a55;
+    }
+    .cage::before { width: 2px; height: 100%; border-radius: 1px; }
+    .cage::after  { width: 100%; height: 2px; border-radius: 1px; }
+
+    /* ── BLADES ── */
+    .blades {
+      position: relative;
+      width: 160px; height: 160px;
+      animation: none;
+      z-index: 1;
+    }
+    .fan-on .blades {
+      animation: spin var(--speed, 0.6s) linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .blade {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 68px; height: 30px;
+      margin-top: -15px;
+      transform-origin: 0 50%;
+      border-radius: 50% 50% 50% 0;
+    }
+    .blade::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, #3a8fc8, #1e5a8a);
+      box-shadow: inset 0 2px 6px rgba(255,255,255,0.15);
+    }
+    .blade:nth-child(1) { transform: rotate(0deg);   }
+    .blade:nth-child(2) { transform: rotate(90deg);  }
+    .blade:nth-child(3) { transform: rotate(180deg); }
+    .blade:nth-child(4) { transform: rotate(270deg); }
+
+    /* center hub */
+    .hub {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #5ab0e8, #1e4a70);
+      border: 3px solid #0d1b2a;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      z-index: 2;
+    }
+
+    /* ── STAND ── */
+    .neck {
+      width: 10px; height: 60px;
+      background: linear-gradient(180deg, #2a4a6a, #1a2a3a);
+      border-radius: 5px;
+      margin-top: -2px;
+    }
+    .base {
+      width: 120px; height: 18px;
+      background: linear-gradient(180deg, #2a4a6a, #1a2a3a);
+      border-radius: 9px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    /* ── SPEED INDICATOR ── */
+    .speed-dots {
+      display: flex; gap: 8px; margin-top: 12px;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #1e3a55;
+      border: 2px solid #2a4a6a;
+      transition: background .3s, box-shadow .3s;
+    }
+    .dot.active {
+      background: #5ab0e8;
+      box-shadow: 0 0 8px #5ab0e8;
+    }
+
+    /* ── CONTROLS ── */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .speed-btns {
+      display: flex; gap: 10px;
+    }
+    .speed-btn {
+      padding: 8px 20px;
+      border-radius: 8px;
+      border: 1px solid #2a4a6a;
+      background: rgba(255,255,255,0.04);
+      color: #7ecfff;
+      font-size: .85rem;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .speed-btn:hover { background: rgba(100,200,255,0.1); border-color: #5ab0e8; }
+    .speed-btn.active { background: rgba(100,200,255,0.15); border-color: #5ab0e8; box-shadow: 0 0 12px rgba(90,176,232,0.3); color: #fff; }
+
+    /* power button */
+    .power-btn {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 3px solid #e94560;
+      background: rgba(233,69,96,0.08);
+      color: #e94560;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: all .3s;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      box-shadow: 0 0 0 0 rgba(233,69,96,0);
+    }
+    .power-btn:hover {
+      background: rgba(233,69,96,0.15);
+      box-shadow: 0 0 20px rgba(233,69,96,0.3);
+    }
+    .power-btn.on {
+      border-color: #4caf50;
+      color: #4caf50;
+      background: rgba(76,175,80,0.1);
+      box-shadow: 0 0 24px rgba(76,175,80,0.35);
+    }
+    .power-btn.on:hover {
+      background: rgba(76,175,80,0.2);
+      box-shadow: 0 0 32px rgba(76,175,80,0.5);
+    }
+
+    .status-text {
+      font-size: .85rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #e94560;
+      transition: color .3s;
+    }
+    .fan-on ~ .controls .status-text,
+    .status-text.on { color: #4caf50; }
+  </style>
+</head>
+<body>
+
+<div class="wind-container" id="wind"></div>
+
+<div class="wrapper">
+  <h1>Ventilator</h1>
+
+  <div class="fan-scene" id="fan-scene">
+    <div class="glow-ring"></div>
+    <div class="cage">
+      <div class="blades" id="blades">
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="hub"></div>
+      </div>
+    </div>
+    <div class="neck"></div>
+    <div class="base"></div>
+    <div class="speed-dots" id="speed-dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="speed-btns" id="speed-btns">
+      <button class="speed-btn active" data-speed="1">Stufe 1</button>
+      <button class="speed-btn"        data-speed="2">Stufe 2</button>
+      <button class="speed-btn"        data-speed="3">Stufe 3</button>
+    </div>
+    <button class="power-btn" id="power-btn">⏻</button>
+    <div class="status-text" id="status-text">AUS</div>
+  </div>
+</div>
+
+<script>
+const fanScene   = document.getElementById('fan-scene');
+const blades     = document.getElementById('blades');
+const powerBtn   = document.getElementById('power-btn');
+const statusText = document.getElementById('status-text');
+const windCont   = document.getElementById('wind');
+const dots       = document.querySelectorAll('.dot');
+const speedBtns  = document.querySelectorAll('.speed-btn');
+
+const SPEEDS = {
+  1: { duration: '1.2s', winds: 4,  label: 'Stufe 1' },
+  2: { duration: '0.55s', winds: 8,  label: 'Stufe 2' },
+  3: { duration: '0.22s', winds: 16, label: 'Stufe 3' },
+};
+
+let isOn    = false;
+let speed   = 1;
+let windInterval = null;
+
+function setSpeed(s) {
+  speed = s;
+  speedBtns.forEach(b => b.classList.toggle('active', Number(b.dataset.speed) === s));
+  dots.forEach((d, i) => d.classList.toggle('active', i < s));
+  blades.style.setProperty('--speed', SPEEDS[s].duration);
+  if (isOn) {
+    resetWind();
+    startWind();
+  }
+}
+
+function startWind() {
+  const cfg = SPEEDS[speed];
+  windInterval = setInterval(spawnWind, 1000 / cfg.winds * 0.5);
+}
+
+function stopWind() {
+  clearInterval(windInterval);
+  windInterval = null;
+}
+
+function resetWind() {
+  stopWind();
+  windCont.innerHTML = '';
+}
+
+function spawnWind() {
+  const line = document.createElement('div');
+  line.className = 'wind-line';
+  const y   = 20 + Math.random() * 60;   // % from top
+  const len = 60  + Math.random() * 160;
+  const dur = 0.8 + Math.random() * 0.8;
+  const delay = Math.random() * 0.3;
+  line.style.cssText = `
+    top: ${y}vh;
+    left: 0;
+    width: ${len}px;
+    animation-duration: ${dur}s;
+    animation-delay: ${delay}s;
+  `;
+  windCont.appendChild(line);
+  setTimeout(() => line.remove(), (dur + delay) * 1000 + 200);
+}
+
+function turnOn() {
+  isOn = true;
+  fanScene.classList.add('fan-on');
+  blades.style.setProperty('--speed', SPEEDS[speed].duration);
+  powerBtn.classList.add('on');
+  statusText.textContent = 'AN';
+  statusText.classList.add('on');
+  dots.forEach((d, i) => d.classList.toggle('active', i < speed));
+  startWind();
+}
+
+function turnOff() {
+  isOn = false;
+  fanScene.classList.remove('fan-on');
+  powerBtn.classList.remove('on');
+  statusText.textContent = 'AUS';
+  statusText.classList.remove('on');
+  dots.forEach(d => d.classList.remove('active'));
+  resetWind();
+}
+
+powerBtn.addEventListener('click', () => isOn ? turnOff() : turnOn());
+
+speedBtns.forEach(btn => {
+  btn.addEventListener('click', () => setSpeed(Number(btn.dataset.speed)));
+});
+
+// init dots
+setSpeed(1);
+</script>
+</body>
+</html>
